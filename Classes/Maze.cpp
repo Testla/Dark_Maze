@@ -78,16 +78,20 @@ void Maze::initMaze(pair<int, int> Maze_Size) {
 	newSprite->setPosition(gridSize.width * end.second, gridSize.height * end.first);
 	addChild(newSprite);
 
+	//add monster
+	createMonster();
+
 	// add view layer
 	viewLayer = Layer::create();
 	addChild(viewLayer);
-	auto bgsprite = Sprite::create("bigger view.png");
+	auto bgsprite = Sprite::create("normal view.png");
 	viewLayer->addChild(bgsprite);
 
 	// add player and positioning
 	player = Sprite::create("player1_2.png");
 	viewLayer->addChild(player);
 	viewLayer->setPosition(playerLayerPosition(playerPosition));
+
 }
 
 /*
@@ -236,4 +240,90 @@ void Maze::chooseMoveAction() {
 		auto animate = Animate::create(animation);
 		walkingAnimation = player->runAction(RepeatForever::create(animate));
 	}
+}
+
+
+void Maze::createTornado() {
+	//add tornado
+	Sprite* tornado;
+	tornado = Sprite::create("tornado1.png");
+	tornado->setAnchorPoint(Vec2::ZERO);
+	tornado->setPosition(gridSize.width * end.second, gridSize.height * end.first);
+	addChild(tornado);
+
+	//add tornadoAnimation
+	Vector<SpriteFrame*> tornadoFrames;
+	tornadoFrames.reserve(3);
+	tornadoFrames.pushBack(SpriteFrame::create("tornado1.png", Rect(0, 0, 50, 50)));
+	tornadoFrames.pushBack(SpriteFrame::create("tornado2.png", Rect(0, 0, 50, 50)));
+	tornadoFrames.pushBack(SpriteFrame::create("tornado3.png", Rect(0, 0, 50, 50)));
+	auto tornadoAnimation = Animation::createWithSpriteFrames(tornadoFrames, 0.1f);
+	auto tornadoAnimate = Animate::create(tornadoAnimation);
+	tornado->runAction(RepeatForever::create(tornadoAnimate));
+}
+
+void Maze::createMonster() {
+	//add monster
+	monster = Sprite::create("monster/monster1_1.png");
+	//monster->setAnchorPoint(Vec2::ZERO);
+	monster->setPosition(gridSize.width * end.second, gridSize.height * end.first);
+	monsterPosition = end;
+	addChild(monster);
+	monster->runAction(CallFunc::create(CC_CALLBACK_0(Maze::monsterDoMove, this)));
+	monsterComingDirection = 1;  // init direction
+}
+
+Vec2 Maze::monsterposition(std::pair<int, int> position) {
+	return Vec2((position.second + 0.5) * gridSize.width
+		, (position.first + 0.5) * gridSize.height);
+}
+
+void Maze::monsterDoMove() {
+	std::vector<int> availableDirection;
+	// collect all available directions
+	for (int i = 0; i < 4; ++i) {
+		if (maze->at(coordinate_add(monsterPosition, directions[i])) != '#') {
+			availableDirection.push_back(i);
+		}
+	}
+	srand(time(NULL));
+	// reduce the chance for reverse direction
+	int assumeDirection = availableDirection[rand() % availableDirection.size()];
+	if ((monsterComingDirection^assumeDirection) == 1) {
+		monsterComingDirection = availableDirection[rand() % availableDirection.size()];
+	} else {
+		monsterComingDirection = assumeDirection;
+	}
+	monster->stopAllActions();
+	monsterChooseMoveAction();
+	
+	monsterPosition = coordinate_add(monsterPosition, directions[monsterComingDirection]);
+	if (monsterPosition == playerPosition)
+		;// touch the player
+	monster->runAction(
+		Sequence::create(
+		MoveTo::create(0.25f, monsterposition(monsterPosition)),
+		CallFunc::create(CC_CALLBACK_0(Maze::monsterDoMove, this)),
+		NULL
+		)
+	);
+}
+
+void Maze::monsterChooseMoveAction() {
+	std::string monsterAnimationSource;
+	std::stringstream ss;
+	int monsterDirection[] = {2, 3, 4, 1};
+	monster->stopAllActions();
+	//add monsterAnimation
+	Vector<SpriteFrame*> monsterFrames;
+	monsterFrames.reserve(4);
+	for (int i = 1; i <= 4; ++i) {
+		ss.clear();
+		ss << "monster/monster" << monsterDirection[monsterComingDirection] << "_" << i << ".png";
+		ss >> monsterAnimationSource;
+		monsterFrames.pushBack(SpriteFrame::create(monsterAnimationSource, Rect(0, 0, 50, 50)));
+	}
+	auto monsterAnimation = Animation::createWithSpriteFrames(monsterFrames, 0.1f);
+	auto monsterAnimate = Animate::create(monsterAnimation);
+	monster->runAction(RepeatForever::create(monsterAnimate));
 }

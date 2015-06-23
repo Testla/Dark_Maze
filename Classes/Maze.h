@@ -21,15 +21,16 @@ private:
 	Layer *viewLayer;
 	Size winSize;
 	EventDispatcher *dispatcher;
-	std::pair<int, int> end, playerPosition;
+	std::pair<int, int> end, playerPosition, monsterPosition;
 	Action *loopMove, *walkingAnimation;
 	Matrix<char> *maze;
 	Sprite *player;
+	Sprite *monster;
 
 	void initKeyboardEvent();
 	void initMaze(std::pair<int, int> Maze_Size);
 	Vec2 playerLayerPosition(std::pair<int, int> position);
-
+	
 	std::pair<int, int> directions[4];
 	/* 
 	 * currentDirection : the direction of current actual graphic
@@ -37,10 +38,17 @@ private:
 	 * comingDirection : the direction to go next
 	 */
 	int comingDirection, currentDirection;
+	int monsterComingDirection;
 	void startMoving(int direction);
 	void stopMoving();
 	void doMove();
 	void chooseMoveAction();
+
+	void createTornado();
+	void createMonster();
+	void monsterDoMove();
+	void monsterChooseMoveAction();
+	Vec2 monsterposition(std::pair<int, int> position);
 };
 
 #endif // __MAZE_H__
