@@ -6,6 +6,9 @@
 #include <algorithm>
 #include "Matrix.hpp"
 
+#include "cocos2d.h"
+USING_NS_CC;
+
 using std::pair;
 
 const char WALL = '#', FLOOR = ' ';
@@ -59,6 +62,9 @@ void Maze_generate(
 	pair<int, int> destiny, corresponding_floor;
 	visited.assign(false);
 	srand(time(NULL));
+	char buf[40];
+	sprintf(buf, "--------time : %d", time(NULL));
+	log(buf);
 	matrix.assign(WALL);
 	start.first = (rand() % (matrix.size().first - 1) / 2) * 2 + 1;
 	start.second = (rand() % (matrix.size().second - 1) / 2) * 2 + 1;
