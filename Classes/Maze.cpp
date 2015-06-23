@@ -84,7 +84,7 @@ void Maze::initMaze(pair<int, int> Maze_Size) {
 	// add view layer
 	viewLayer = Layer::create();
 	addChild(viewLayer);
-	auto bgsprite = Sprite::create("bigger view.png");
+	auto bgsprite = Sprite::create("normal view.png");
 	viewLayer->addChild(bgsprite);
 
 	// add player and positioning
@@ -288,8 +288,11 @@ void Maze::monsterDoMove() {
 	}
 	srand(time(NULL));
 	// reduce the chance for reverse direction
-	if (monsterComingDirection^availableDirection[rand() % availableDirection.size()] == 1) {
+	int assumeDirection = availableDirection[rand() % availableDirection.size()];
+	if ((monsterComingDirection^assumeDirection) == 1) {
 		monsterComingDirection = availableDirection[rand() % availableDirection.size()];
+	} else {
+		monsterComingDirection = assumeDirection;
 	}
 	monster->stopAllActions();
 	monsterChooseMoveAction();
@@ -299,8 +302,7 @@ void Maze::monsterDoMove() {
 		;// touch the player
 	monster->runAction(
 		Sequence::create(
-		MoveTo::create((monsterposition(monsterPosition) - viewLayer->getPosition()).length() / 50 / 4  // 4 grid pre second
-		, monsterposition(monsterPosition)),
+		MoveTo::create(0.25f, monsterposition(monsterPosition)),
 		CallFunc::create(CC_CALLBACK_0(Maze::monsterDoMove, this)),
 		NULL
 		)
