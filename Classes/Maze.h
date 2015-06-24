@@ -15,10 +15,11 @@ public:
     CREATE_FUNC(Maze);
 
 	~Maze();
+	static const std::pair<int, int> screenSize;
+	static const Size gridSize;
 private:
-	const Size gridSize = Size(50.0f, 50.0f);
-
-	Layer *viewLayer;
+	std::pair<int, int> mazeSize;
+	Layer *mazeLayer, *playerLayer;
 	Size winSize;
 	EventDispatcher *dispatcher;
 	std::pair<int, int> end, playerPosition, monsterPosition;
@@ -29,7 +30,6 @@ private:
 
 	void initKeyboardEvent();
 	void initMaze(std::pair<int, int> Maze_Size);
-	Vec2 playerLayerPosition(std::pair<int, int> position);
 	
 	std::pair<int, int> directions[4];
 	/* 
@@ -49,6 +49,14 @@ private:
 	void monsterDoMove();
 	void monsterChooseMoveAction();
 	Vec2 monsterposition(std::pair<int, int> position);
+
+	Vec2 playerLayerRightPosition, mazeLayerRightPosition;
+	void calculateRightPosition();
+	Layer *layerToSetRightPosition;
+	FiniteTimeAction *doSetRightPosition();
+	void debug();
+	void createInvisibleCloak();
+	void createTorch();
 };
 
 #endif // __MAZE_H__

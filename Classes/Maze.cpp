@@ -8,6 +8,14 @@ USING_NS_CC;
 
 using std::pair;
 
+/* 
+ * initialize static member
+ * mazeSize should be strictly equal or bigger than screenSize
+ * both mazeSize and screenSize should be in the form (odd, odd)
+ */
+const pair<int, int> Maze::screenSize = { 13, 17 };
+const Size Maze::gridSize = Size(50.0f, 50.0f);
+
 void Maze_generate(
 	Matrix<char> &matrix,
 	pair<int, int> &start,
@@ -38,7 +46,7 @@ bool Maze::init() {
     {
         return false;
     }
-
+	
 	dispatcher = Director::getInstance()->getEventDispatcher();
 	winSize = Director::getInstance()->getWinSize();
 	directions[0] = { 0, -1 };
@@ -47,9 +55,15 @@ bool Maze::init() {
 	directions[3] = { -1, 0 };
 	currentDirection = -1;
 	loopMove = nullptr;
-	maze = new Matrix<char>(std::make_pair(13, 17));
+	mazeSize = { 23, 27 };
+	maze = new Matrix<char>(mazeSize);
+	mazeLayer = Layer::create();
+	addChild(mazeLayer);
+	playerLayer = Layer::create();
+	addChild(playerLayer);
+	layerToSetRightPosition = mazeLayer;
 
-	initMaze({ 13, 17 });
+	initMaze(mazeSize);
 	initKeyboardEvent();
     return true;
 }
@@ -70,28 +84,30 @@ void Maze::initMaze(pair<int, int> Maze_Size) {
 			}
 			newSprite->setAnchorPoint(Vec2::ZERO);
 			newSprite->setPosition(gridSize.width * j, gridSize.height * i);
-			addChild(newSprite);
+			mazeLayer->addChild(newSprite);
 		}
 	// add end
 	newSprite = Sprite::create("final.png");
 	newSprite->setAnchorPoint(Vec2::ZERO);
 	newSprite->setPosition(gridSize.width * end.second, gridSize.height * end.first);
-	addChild(newSprite);
+	mazeLayer->addChild(newSprite);
 
 	//add monster
 	createMonster();
 
-	// add view layer
-	viewLayer = Layer::create();
-	addChild(viewLayer);
-	auto bgsprite = Sprite::create("normal view.png");
-	viewLayer->addChild(bgsprite);
+	// add view
+	newSprite = Sprite::create("normal view.png");
+	//playerLayer->addChild(newSprite);
 
-	// add player and positioning
+	// add player
 	player = Sprite::create("player1_2.png");
-	viewLayer->addChild(player);
-	viewLayer->setPosition(playerLayerPosition(playerPosition));
+	playerLayer->addChild(player);
 
+	// positioning
+	calculateRightPosition();
+	mazeLayer->setPosition(mazeLayerRightPosition);
+	playerLayer->setPosition(playerLayerRightPosition);
+	//playerLayer->setPosition(Vec2::ZERO);
 }
 
 /*
@@ -133,9 +149,11 @@ void Maze::initKeyboardEvent() {
 	dispatcher->addEventListenerWithSceneGraphPriority(listener, this);
 }
 
-Vec2 Maze::playerLayerPosition(std::pair<int, int> position) {
-	return Vec2((position.second + 0.5) * gridSize.width
-				, (position.first + 0.5) * gridSize.height);
+void Maze::debug() {
+	Sleep(100);
+	log("stop");
+	layerToSetRightPosition->stopAction(loopMove);
+	loopMove = nullptr;
 }
 
 /*
@@ -151,18 +169,20 @@ void Maze::startMoving(int direction) {
 	} else if ((direction ^ currentDirection) == 1) {  // opposite
 		// if the player is moving, stop it
 		if (loopMove) {
-			viewLayer->stopAction(loopMove);
+			layerToSetRightPosition->stopAction(loopMove);
 			loopMove = nullptr;
-			//walkingAnimation->stop();
 		}
 		comingDirection = direction;
-		loopMove = viewLayer->runAction(CallFunc::create(CC_CALLBACK_0(Maze::doMove, this)));
+		calculateRightPosition();
+		loopMove = layerToSetRightPosition->runAction(CallFunc::create(CC_CALLBACK_0(Maze::doMove, this)));
 	} else if (currentDirection != -1) {  // orthogonal
 		comingDirection = direction;
 	} else {  // not moving
 		comingDirection = direction;
-		if (!loopMove)
-			loopMove = viewLayer->runAction(CallFunc::create(CC_CALLBACK_0(Maze::doMove, this)));
+		calculateRightPosition();
+		loopMove = layerToSetRightPosition->runAction(CallFunc::create(CC_CALLBACK_0(Maze::doMove, this)));
+		//log("start");
+		//runAction(CallFunc::create(CC_CALLBACK_0(Maze::debug, this)));
 	}
 }
 
@@ -180,7 +200,7 @@ void Maze::doMove() {
 	currentDirection = comingDirection;
 	if (currentDirection == -1) {
 		if (loopMove) {
-			viewLayer->stopAction(loopMove);
+			layerToSetRightPosition->stopAction(loopMove);
 			loopMove = nullptr;
 		}
 		return;
@@ -189,18 +209,22 @@ void Maze::doMove() {
 		playerPosition = coordinate_add(playerPosition, directions[currentDirection]);
 		if (playerPosition == end)
 			;// win
-		loopMove = viewLayer->runAction(
+		if (playerPosition == monsterPosition)
+			log("lose1");
+		loopMove = layerToSetRightPosition->runAction(
 			Sequence::create(
-				MoveTo::create((playerLayerPosition(playerPosition) - viewLayer->getPosition()).length() / 50 / 4  // 4 grid pre second
-				, playerLayerPosition(playerPosition)),
+				doSetRightPosition(),
 				CallFunc::create(CC_CALLBACK_0(Maze::doMove, this)),
 				NULL
 			)
 		);
 	} else {  // encounters a wall, stop
 		if (loopMove) {
-			viewLayer->stopAction(loopMove);
+			layerToSetRightPosition->stopAction(loopMove);
 			loopMove = nullptr;
+			player->stopAllActions();
+			comingDirection = -1;
+			chooseMoveAction();
 		}
 		currentDirection = -1;
 	}
@@ -242,14 +266,13 @@ void Maze::chooseMoveAction() {
 	}
 }
 
-
 void Maze::createTornado() {
 	//add tornado
 	Sprite* tornado;
 	tornado = Sprite::create("tornado1.png");
 	tornado->setAnchorPoint(Vec2::ZERO);
 	tornado->setPosition(gridSize.width * end.second, gridSize.height * end.first);
-	addChild(tornado);
+	mazeLayer->addChild(tornado);
 
 	//add tornadoAnimation
 	Vector<SpriteFrame*> tornadoFrames;
@@ -268,7 +291,7 @@ void Maze::createMonster() {
 	//monster->setAnchorPoint(Vec2::ZERO);
 	monster->setPosition(gridSize.width * end.second, gridSize.height * end.first);
 	monsterPosition = end;
-	addChild(monster);
+	mazeLayer->addChild(monster);
 	monster->runAction(CallFunc::create(CC_CALLBACK_0(Maze::monsterDoMove, this)));
 	monsterComingDirection = 1;  // init direction
 }
@@ -298,8 +321,6 @@ void Maze::monsterDoMove() {
 	monsterChooseMoveAction();
 	
 	monsterPosition = coordinate_add(monsterPosition, directions[monsterComingDirection]);
-	if (monsterPosition == playerPosition)
-		;// touch the player
 	monster->runAction(
 		Sequence::create(
 		MoveTo::create(0.25f, monsterposition(monsterPosition)),
@@ -307,6 +328,8 @@ void Maze::monsterDoMove() {
 		NULL
 		)
 	);
+	if (monsterPosition == playerPosition)
+		log("lose");
 }
 
 void Maze::monsterChooseMoveAction() {
@@ -326,4 +349,84 @@ void Maze::monsterChooseMoveAction() {
 	auto monsterAnimation = Animation::createWithSpriteFrames(monsterFrames, 0.1f);
 	auto monsterAnimate = Animate::create(monsterAnimation);
 	monster->runAction(RepeatForever::create(monsterAnimate));
+}
+
+void Maze::calculateRightPosition() {
+	Vec2 origin;  // the left-bottom point relative to mazeLayer
+	/* x coordinate */
+	if (playerPosition.second <= screenSize.second / 2) {  // left over
+		origin.x = 0;
+	} else if (playerPosition.second > mazeSize.second - screenSize.second / 2) {  // right over
+		origin.x = (mazeSize.second - screenSize.second) * gridSize.width;
+	} else {  // middle
+		origin.x = (playerPosition.second - screenSize.second / 2 - 1) * gridSize.width;
+	}
+	/* y coordinate */
+	if (playerPosition.first <= screenSize.first / 2) {  // bottom over
+		origin.y = 0;
+	} else if (playerPosition.first > mazeSize.first - screenSize.first / 2) {  // up over
+		origin.y = (mazeSize.first - screenSize.first) * gridSize.height;
+	} else {  // middle
+		origin.y = (playerPosition.first - screenSize.first / 2 - 1) * gridSize.height;
+	}
+	mazeLayerRightPosition = -origin;
+	playerLayerRightPosition = Vec2(
+		(playerPosition.second + 0.5) * gridSize.width,
+		(playerPosition.first + 0.5) * gridSize.height
+	) - origin;
+}
+
+FiniteTimeAction* Maze::doSetRightPosition() {
+	calculateRightPosition();
+	Vec2 currentPosition;
+	static char buf[100];
+	currentPosition = playerLayer->getPosition();
+	sprintf(buf, "currentPosition : (%f, %f)", currentPosition.x, currentPosition.y);
+	//log(buf);
+	sprintf(buf, "playerLayerRightPosition : (%f, %f)", playerLayerRightPosition.x, playerLayerRightPosition.y);
+	//log(buf);
+	if (currentPosition != playerLayerRightPosition) {  // playerLayer
+		//log("player");
+		layerToSetRightPosition = playerLayer;
+		return MoveTo::create(
+			(playerLayerRightPosition - currentPosition).length() / 50 / 4  // 4 grids per second
+			, playerLayerRightPosition
+		);
+	} else {
+		//log("maze");
+		currentPosition = mazeLayer->getPosition();
+		sprintf(buf, "currentPosition : (%f, %f)", currentPosition.x, currentPosition.y);
+		//log(buf);
+		sprintf(buf, "mazeLayerRightPosition : (%f, %f)", mazeLayerRightPosition.x, mazeLayerRightPosition.y);
+		//log(buf);
+		//if (currentPosition != mazeLayerRightPosition) {  //mazeLayer
+			layerToSetRightPosition = mazeLayer;
+			return MoveTo::create(
+				(mazeLayerRightPosition - currentPosition).length() / 50 / 4  // 4 grids per second
+				, mazeLayerRightPosition
+			);
+		/*}
+		else {
+			log("no!");
+		}*/
+	}
+}
+
+// create InvisibleCloak
+void Maze::createInvisibleCloak() {
+	Sprite* invisibleCloak;
+	invisibleCloak = Sprite::create("invisiblecloak.png");
+	invisibleCloak->setAnchorPoint(Vec2::ZERO);
+	invisibleCloak->setPosition(gridSize.width * end.second, gridSize.height * end.first);
+	addChild(invisibleCloak);
+}
+
+
+//create Torch
+void Maze::createTorch() {
+	Sprite* torch;
+	torch = Sprite::create("torch.png");
+	torch->setAnchorPoint(Vec2::ZERO);
+	torch->setPosition(gridSize.width * end.second, gridSize.height * end.first);
+	addChild(torch);
 }

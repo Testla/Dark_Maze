@@ -1,5 +1,6 @@
 #include "AppDelegate.h"
 #include "Maze.h"
+#include "SelectLevelScene.h"
 
 USING_NS_CC;
 
@@ -28,7 +29,10 @@ bool AppDelegate::applicationDidFinishLaunching() {
     auto glview = director->getOpenGLView();
     if(!glview) {
         glview = GLViewImpl::create("Maze");
-		glview->setFrameSize(850, 650);
+		glview->setFrameSize(
+			Maze::screenSize.second * Maze::gridSize.width,
+			Maze::screenSize.first * Maze::gridSize.height
+		);
         director->setOpenGLView(glview);
     }
 
@@ -39,7 +43,7 @@ bool AppDelegate::applicationDidFinishLaunching() {
     director->setAnimationInterval(1.0 / 60);
 
     // create a scene. it's an autorelease object
-    auto scene = Maze::createScene();
+	auto scene = Maze::createScene();
 
     // run
     director->runWithScene(scene);
