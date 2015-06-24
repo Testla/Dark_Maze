@@ -48,7 +48,6 @@ bool Maze::init() {
     {
         return false;
     }
-	log("initializing maze");
 	dispatcher = Director::getInstance()->getEventDispatcher();
 	winSize = Director::getInstance()->getWinSize();
 	directions[0] = { 0, -1 };
@@ -66,7 +65,10 @@ bool Maze::init() {
 	for (int i = 0; i < 4; ++i)
 		keyIsHolding[i] = false;
 	holdingCount = 0;
+	playerSpeed = 4;
+	torchCount = 0;
 
+	initUpdateEvent();
 	initMaze();
 	initKeyboardEvent();
     return true;
@@ -74,6 +76,32 @@ bool Maze::init() {
 
 Maze::~Maze() {
 	delete maze;
+}
+
+void Maze::initUpdateEvent() {
+	dispatcher->addCustomEventListener("director_after_update", [=](EventCustom* event) {
+		static Vec2 endPoint = Vec2((end.second + 0.5) * gridSize.width, (end.first + 0.5) * gridSize.height);
+		if ((playerLayer->convertToWorldSpace(player->getPosition())
+			- mazeLayer->convertToWorldSpace(monster->getPosition())).length() < 30.0f - 0.1f)
+			gameOver(false);
+		if (player->getBoundingBox().containsPoint(playerLayer->convertToNodeSpace(endPoint)))
+			gameOver(true);
+		if (itemSet.find({ (ItemType)0, playerPosition, nullptr }) != itemSet.end()) {
+			Item itemTriggered = *itemSet.find({ (ItemType)0, playerPosition, nullptr });
+			if ((itemTriggered.itemSprite->getBoundingBox().containsPoint(
+				mazeLayer->convertToNodeSpace(playerLayer->convertToWorldSpace(player->getPosition()))))) {
+				itemSet.erase(itemSet.find({ (ItemType)0, playerPosition, nullptr }));
+				itemTriggered.itemSprite->removeFromParent();
+				/* don't know how to use function object ... */
+				switch (itemTriggered.itemType) {
+				case Tornado:runAction(CallFunc::create(CC_CALLBACK_0(Maze::tornadoCallback, this))); break;
+				case SpeedUp:runAction(CallFunc::create(CC_CALLBACK_0(Maze::speedUpCallback, this))); break;
+				case SpeedDown:runAction(CallFunc::create(CC_CALLBACK_0(Maze::speedDownCallback, this))); break;
+				case Torch:runAction(CallFunc::create(CC_CALLBACK_0(Maze::torchCallback, this))); break;
+				}
+			}
+		}
+	});
 }
 
 void Maze::initMaze() {
@@ -111,6 +139,8 @@ void Maze::initMaze() {
 	calculateRightPosition();
 	mazeLayer->setPosition(mazeLayerRightPosition);
 	playerLayer->setPosition(playerLayerRightPosition);
+
+	addItemsRandomly();
 }
 
 /*
@@ -201,13 +231,10 @@ void Maze::doMove() {
 	}
 	if (maze->at(coordinate_add(playerPosition, directions[currentDirection])) != '#') {
 		playerPosition = coordinate_add(playerPosition, directions[currentDirection]);
-		if (playerPosition == end)
-			gameOver(true);
-		if (playerPosition == monsterPosition)
-			gameOver(false);
 		loopMove = layerToSetRightPosition->runAction(
 			Sequence::create(
 				doSetRightPosition(),
+				CallFunc::create(CC_CALLBACK_0(Maze::checkItemTrigger, this)),
 				CallFunc::create(CC_CALLBACK_0(Maze::doMove, this)),
 				NULL
 			)
@@ -260,12 +287,12 @@ void Maze::chooseMoveAction() {
 	}
 }
 
-void Maze::createTornado() {
+Sprite* Maze::createTornado(std::pair<int, int> position) {
 	//add tornado
 	Sprite* tornado;
 	tornado = Sprite::create("tornado1.png");
 	tornado->setAnchorPoint(Vec2::ZERO);
-	tornado->setPosition(gridSize.width * end.second, gridSize.height * end.first);
+	tornado->setPosition(gridSize.width * position.second, gridSize.height * position.first);
 	mazeLayer->addChild(tornado);
 
 	//add tornadoAnimation
@@ -277,6 +304,7 @@ void Maze::createTornado() {
 	auto tornadoAnimation = Animation::createWithSpriteFrames(tornadoFrames, 0.1f);
 	auto tornadoAnimate = Animate::create(tornadoAnimation);
 	tornado->runAction(RepeatForever::create(tornadoAnimate));
+	return tornado;
 }
 
 void Maze::createMonster() {
@@ -322,8 +350,6 @@ void Maze::monsterDoMove() {
 		NULL
 		)
 	);
-	if (monsterPosition == playerPosition)
-		gameOver(false);
 }
 
 void Maze::monsterChooseMoveAction() {
@@ -378,7 +404,7 @@ FiniteTimeAction* Maze::doSetRightPosition() {
 		//log("player");
 		layerToSetRightPosition = playerLayer;
 		return MoveTo::create(
-			(playerLayerRightPosition - currentPosition).length() / 50 / 4  // 4 grids per second
+			(playerLayerRightPosition - currentPosition).length() / 50 / playerSpeed
 			, playerLayerRightPosition
 		);
 	} else {
@@ -389,31 +415,13 @@ FiniteTimeAction* Maze::doSetRightPosition() {
 		//if (currentPosition != mazeLayerRightPosition) {  //mazeLayer
 			layerToSetRightPosition = mazeLayer;
 			return MoveTo::create(
-				(mazeLayerRightPosition - currentPosition).length() / 50 / 4  // 4 grids per second
+				(mazeLayerRightPosition - currentPosition).length() / 50 / playerSpeed
 				, mazeLayerRightPosition
 			);
 		/*} else {
 			log("no!");
 		}*/
 	}
-}
-
-// create InvisibleCloak
-void Maze::createInvisibleCloak() {
-	Sprite* invisibleCloak;
-	invisibleCloak = Sprite::create("invisiblecloak.png");
-	invisibleCloak->setAnchorPoint(Vec2::ZERO);
-	invisibleCloak->setPosition(gridSize.width * end.second, gridSize.height * end.first);
-	mazeLayer->addChild(invisibleCloak);
-}
-
-//create Torch
-void Maze::createTorch() {
-	Sprite* torch;
-	torch = Sprite::create("torch.png");
-	torch->setAnchorPoint(Vec2::ZERO);
-	torch->setPosition(gridSize.width * end.second, gridSize.height * end.first);
-	mazeLayer->addChild(torch);
 }
 
 void Maze::gameOver(bool winOrLose) {
@@ -436,20 +444,123 @@ void Maze::back(Ref *ref) {
 	Director::getInstance()->replaceScene(scene);
 }
 
-//create SpeedUp
-void Maze::createSpeedUp() {
-	Sprite* speedup;
-	speedup = Sprite::create("arrow_up.png");
-	speedup->setAnchorPoint(Vec2::ZERO);
-	speedup->setPosition(gridSize.width * end.second, gridSize.height * end.first);
-	mazeLayer->addChild(speedup);
+void Maze::addItem(const ItemType itemType, const std::pair<int, int> itemPosition) {
+	static const char* ItemFilenames[] = {
+		nullptr,
+		"arrow_up.png",
+		"arrow_down.png",
+		"torch.png"
+	};
+	Sprite *itemSprite;
+	if (itemType == Tornado) {
+		itemSprite = createTornado(itemPosition);
+	} else {
+		itemSprite = Sprite::create(ItemFilenames[(int)itemType]);
+		itemSprite->setAnchorPoint(Vec2::ZERO);
+		itemSprite->setPosition(
+			gridSize.width * itemPosition.second,
+			gridSize.height * itemPosition.first
+			);
+		mazeLayer->addChild(itemSprite);
+	}
+	itemSet.insert({ itemType, itemPosition, itemSprite });
 }
 
-//create SpeedDown
-void Maze::createSpeedDown() {
-	Sprite* speeddown;
-	speeddown = Sprite::create("arrow_down.png");
-	speeddown->setAnchorPoint(Vec2::ZERO);
-	speeddown->setPosition(gridSize.width * end.second, gridSize.height * end.first);
-	mazeLayer->addChild(speeddown);
+void Maze::addItemsRandomly() {
+	static const int density = 10;  // grids per item
+	int expectedNumItems, actualNumItems = 0;
+	ItemType itemType;
+	pair<int, int> itemPosition;
+	expectedNumItems = mazeSize.first * mazeSize.second / density;
+	for (int i = 0; i < expectedNumItems * 2; ++i)
+		if (rand() & 1)
+			++actualNumItems;
+	for (int i = 0; i < actualNumItems; ++i) {
+		itemType = (ItemType)(rand() % NumberOfItemTypes);
+		do {
+			itemPosition.first = rand() % mazeSize.first;
+			itemPosition.second = rand() % mazeSize.second;
+		} while (
+			maze->at(itemPosition) == '#'
+			|| itemSet.find({ itemType, itemPosition, nullptr }) != itemSet.end()
+			|| itemPosition == end
+		);
+		addItem(itemType, itemPosition);
+	}
+}
+
+void Maze::checkItemTrigger() {
+	return;
+	if (itemSet.find({ (ItemType)0, playerPosition, nullptr }) != itemSet.end()) {
+		Item itemTriggered = *itemSet.find({ (ItemType)0, playerPosition, nullptr });
+		itemSet.erase(itemSet.find({ (ItemType)0, playerPosition, nullptr }));
+		itemTriggered.itemSprite->removeFromParent();
+		/* don't know how to use function object ... */
+		switch (itemTriggered.itemType) {
+			case Tornado:runAction(CallFunc::create(CC_CALLBACK_0(Maze::tornadoCallback, this))); break;
+			case SpeedUp:runAction(CallFunc::create(CC_CALLBACK_0(Maze::speedUpCallback, this))); break;
+			case SpeedDown:runAction(CallFunc::create(CC_CALLBACK_0(Maze::speedDownCallback, this))); break;
+			case Torch:runAction(CallFunc::create(CC_CALLBACK_0(Maze::torchCallback, this))); break;
+		}
+	}
+}
+
+void Maze::tornadoCallback() {
+	pair<int, int> randomPosition;
+	do {
+		randomPosition.first = rand() % mazeSize.first;
+		randomPosition.second = rand() % mazeSize.second;
+	} while (
+		maze->at(randomPosition) == '#'
+		|| itemSet.find({ (ItemType)0, randomPosition, nullptr }) != itemSet.end()
+	);
+	if (loopMove)
+		layerToSetRightPosition->stopAction(loopMove);
+	player->stopAction(walkingAnimation);
+	playerPosition = randomPosition;
+	calculateRightPosition();
+	mazeLayer->setPosition(mazeLayerRightPosition);
+	playerLayer->setPosition(playerLayerRightPosition);
+	loopMove = layerToSetRightPosition->runAction(CallFunc::create(CC_CALLBACK_0(Maze::doMove, this)));
+}
+
+void Maze::speedUpCallback() {
+	playerSpeed *= 2;
+	runAction(Sequence::create(
+		DelayTime::create(5.0f),
+		CallFunc::create(CC_CALLBACK_0(Maze::endSpeedUp, this)),
+		NULL
+	));
+}
+
+void Maze::endSpeedUp() {
+	playerSpeed /= 2;
+}
+
+void Maze::speedDownCallback() {
+	playerSpeed /= 2;
+	runAction(Sequence::create(
+		DelayTime::create(5.0f),
+		CallFunc::create(CC_CALLBACK_0(Maze::endSpeedDown, this)),
+		NULL
+	));
+}
+
+void Maze::endSpeedDown() {
+	playerSpeed *= 2;
+}
+
+void Maze::torchCallback() {
+	++torchCount;
+	cover->setSpriteFrame(SpriteFrame::create("bigger view.png", Rect(0, 0, 1650, 1250)));
+	runAction(Sequence::create(
+		DelayTime::create(10.0f),
+		CallFunc::create(CC_CALLBACK_0(Maze::endTorch, this)),
+		NULL
+	));
+}
+
+void Maze::endTorch() {
+	if (--torchCount == 0)
+		cover->setSpriteFrame(SpriteFrame::create("normal view.png", Rect(0, 0, 1650, 1250)));
 }
