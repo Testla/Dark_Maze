@@ -2,6 +2,8 @@
 #include "Maze.h"
 #include "SelectLevelScene.h"
 #include "StartScene.h"
+#include "SimpleAudioEngine.h"
+using namespace CocosDenshion;
 
 USING_NS_CC;
 
@@ -46,6 +48,9 @@ bool AppDelegate::applicationDidFinishLaunching() {
     // create a scene. it's an autorelease object
 	auto scene = StartScene::createScene();
 
+	SimpleAudioEngine::getInstance()->preloadBackgroundMusic("bgm.mp3");
+	SimpleAudioEngine::getInstance()->preloadEffect("lose.mp3");
+	SimpleAudioEngine::getInstance()->preloadEffect("win.mp3");
     // run
     director->runWithScene(scene);
 

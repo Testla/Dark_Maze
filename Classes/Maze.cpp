@@ -1,8 +1,10 @@
 #include "Maze.h"
 #include "SelectLevelScene.h"
 #include "StartScene.h"
+#include "SimpleAudioEngine.h"
 #pragma execution_character_set("utf-8") 
 USING_NS_CC;
+using namespace CocosDenshion;
 
 #ifdef _DEBUG   
 #include "vld.h"
@@ -69,9 +71,10 @@ bool Maze::init() {
 	playerSpeed = 4;
 	torchCount = 0;
 
-	initUpdateEvent();
 	initMaze();
+	initUpdateEvent();
 	initKeyboardEvent();
+	SimpleAudioEngine::getInstance()->playBackgroundMusic("bgm.mp3", true);
     return true;
 }
 
@@ -437,6 +440,8 @@ void Maze::gameOver(bool winOrLose) {
 	auto menu = Menu::create(item, NULL);
 	menu->setPosition(winSize / 2);
 	addChild(menu, 2);
+	SimpleAudioEngine::getInstance()->stopBackgroundMusic();
+	SimpleAudioEngine::getInstance()->playEffect(winOrLose ? "win.mp3" : "lose.mp3");
 }
 
 void Maze::back(Ref *ref) {
