@@ -63,6 +63,8 @@ private:
 
 	void gameOver(bool winOrLose);
 	void back(Ref *ref);
+	void createSpeedUp();
+	void createSpeedDown();
 };
 
 #endif // __MAZE_H__

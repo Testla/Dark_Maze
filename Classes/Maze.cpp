@@ -404,7 +404,7 @@ void Maze::createInvisibleCloak() {
 	invisibleCloak = Sprite::create("invisiblecloak.png");
 	invisibleCloak->setAnchorPoint(Vec2::ZERO);
 	invisibleCloak->setPosition(gridSize.width * end.second, gridSize.height * end.first);
-	addChild(invisibleCloak);
+	mazeLayer->addChild(invisibleCloak);
 }
 
 //create Torch
@@ -413,7 +413,7 @@ void Maze::createTorch() {
 	torch = Sprite::create("torch.png");
 	torch->setAnchorPoint(Vec2::ZERO);
 	torch->setPosition(gridSize.width * end.second, gridSize.height * end.first);
-	addChild(torch);
+	mazeLayer->addChild(torch);
 }
 
 void Maze::gameOver(bool winOrLose) {
@@ -434,4 +434,22 @@ void Maze::back(Ref *ref) {
 	//this->removeAllChildren();
 	auto scene = SelectLevel::createScene();
 	Director::getInstance()->replaceScene(scene);
+}
+
+//create SpeedUp
+void Maze::createSpeedUp() {
+	Sprite* speedup;
+	speedup = Sprite::create("arrow_up.png");
+	speedup->setAnchorPoint(Vec2::ZERO);
+	speedup->setPosition(gridSize.width * end.second, gridSize.height * end.first);
+	mazeLayer->addChild(speedup);
+}
+
+//create SpeedDown
+void Maze::createSpeedDown() {
+	Sprite* speeddown;
+	speeddown = Sprite::create("arrow_down.png");
+	speeddown->setAnchorPoint(Vec2::ZERO);
+	speeddown->setPosition(gridSize.width * end.second, gridSize.height * end.first);
+	mazeLayer->addChild(speeddown);
 }
