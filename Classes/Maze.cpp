@@ -1,5 +1,6 @@
 #include "Maze.h"
 #include "SelectLevelScene.h"
+#include "StartScene.h"
 #pragma execution_character_set("utf-8") 
 USING_NS_CC;
 
@@ -440,7 +441,7 @@ void Maze::gameOver(bool winOrLose) {
 
 void Maze::back(Ref *ref) {
 	//this->removeAllChildren();
-	auto scene = SelectLevel::createScene();
+	auto scene = StartScene::createScene();
 	Director::getInstance()->replaceScene(scene);
 }
 

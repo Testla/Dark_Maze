@@ -27,13 +27,17 @@ bool SelectLevel::init() {
 	dispatcher = Director::getInstance()->getEventDispatcher();
 	winSize = Director::getInstance()->getWinSize();
 
+	Sprite* background = Sprite::create("StartScene.png");
+	background->setPosition(winSize / 2);
+	addChild(background);
+
 	auto item1 = MenuItemLabel::create(Label::createWithSystemFont("初级", "Microsoft Yahei", 30.0f), CC_CALLBACK_1(SelectLevel::start, this, 0));
 	auto item2 = MenuItemLabel::create(Label::createWithSystemFont("中级", "Microsoft Yahei", 30.0f), CC_CALLBACK_1(SelectLevel::start, this, 1));
 	auto item3 = MenuItemLabel::create(Label::createWithSystemFont("高级", "Microsoft Yahei", 30.0f), CC_CALLBACK_1(SelectLevel::start, this, 2));
 
 	// create menu, it's an autorelease object
 	auto menu = Menu::create(item1, item2, item3, NULL);
-	menu->setPosition(winSize.width / 4, winSize.height / 2);
+	menu->setPosition(winSize.width / 2, winSize.height / 2);
 	menu->alignItemsVerticallyWithPadding(item1->getContentSize().height / 2);
 	this->addChild(menu, 1);
 
