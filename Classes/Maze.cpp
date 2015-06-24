@@ -74,7 +74,7 @@ bool Maze::init() {
 	initMaze();
 	initUpdateEvent();
 	initKeyboardEvent();
-	SimpleAudioEngine::getInstance()->playBackgroundMusic("bgm.mp3", true);
+	SimpleAudioEngine::getInstance()->playBackgroundMusic("music/bgm.mp3", true);
     return true;
 }
 
@@ -136,7 +136,7 @@ void Maze::initMaze() {
 	playerLayer->addChild(cover);
 
 	// add player
-	player = Sprite::create("player1_2.png");
+	player = Sprite::create("player/player1_2.png");
 	playerLayer->addChild(player);
 
 	// positioning
@@ -266,7 +266,7 @@ void Maze::chooseMoveAction() {
 	if (comingDirection == -1) {
 		player->stopAllActions();
 		animFrames.reserve(1);
-		ss << "player" << frameLabel[currentDirection] << "_2.png";
+		ss << "player/player" << frameLabel[currentDirection] << "_2.png";
 		ss >> framesSource;
 		animFrames.pushBack(SpriteFrame::create(framesSource, Rect(0, 0, 50, 50)));
 		ss.clear();
@@ -277,11 +277,11 @@ void Maze::chooseMoveAction() {
 	else if (currentDirection != comingDirection) {
 		player->stopAllActions();
 		animFrames.reserve(2);
-		ss << "player" << frameLabel[comingDirection] << "_1.png";
+		ss << "player/player" << frameLabel[comingDirection] << "_1.png";
 		ss >> framesSource;
 		animFrames.pushBack(SpriteFrame::create(framesSource, Rect(0, 0, 50, 50)));
 		ss.clear();
-		ss << "player" << frameLabel[comingDirection] << "_3.png";
+		ss << "player/player" << frameLabel[comingDirection] << "_3.png";
 		ss >> framesSource;
 		animFrames.pushBack(SpriteFrame::create(framesSource, Rect(0, 0, 50, 50)));
 		ss.clear();
@@ -294,7 +294,7 @@ void Maze::chooseMoveAction() {
 Sprite* Maze::createTornado(std::pair<int, int> position) {
 	//add tornado
 	Sprite* tornado;
-	tornado = Sprite::create("tornado1.png");
+	tornado = Sprite::create("item/tornado1.png");
 	tornado->setAnchorPoint(Vec2::ZERO);
 	tornado->setPosition(gridSize.width * position.second, gridSize.height * position.first);
 	mazeLayer->addChild(tornado);
@@ -302,9 +302,9 @@ Sprite* Maze::createTornado(std::pair<int, int> position) {
 	//add tornadoAnimation
 	Vector<SpriteFrame*> tornadoFrames;
 	tornadoFrames.reserve(3);
-	tornadoFrames.pushBack(SpriteFrame::create("tornado1.png", Rect(0, 0, 50, 50)));
-	tornadoFrames.pushBack(SpriteFrame::create("tornado2.png", Rect(0, 0, 50, 50)));
-	tornadoFrames.pushBack(SpriteFrame::create("tornado3.png", Rect(0, 0, 50, 50)));
+	tornadoFrames.pushBack(SpriteFrame::create("item/tornado1.png", Rect(0, 0, 50, 50)));
+	tornadoFrames.pushBack(SpriteFrame::create("item/tornado2.png", Rect(0, 0, 50, 50)));
+	tornadoFrames.pushBack(SpriteFrame::create("item/tornado3.png", Rect(0, 0, 50, 50)));
 	auto tornadoAnimation = Animation::createWithSpriteFrames(tornadoFrames, 0.1f);
 	auto tornadoAnimate = Animate::create(tornadoAnimation);
 	tornado->runAction(RepeatForever::create(tornadoAnimate));
@@ -438,7 +438,7 @@ void Maze::gameOver(bool winOrLose) {
 	playerLayer->stopAllActions();
 	cover->setVisible(false);
 	SimpleAudioEngine::getInstance()->stopBackgroundMusic();
-	SimpleAudioEngine::getInstance()->playEffect(winOrLose ? "win.mp3" : "lose.mp3");
+	SimpleAudioEngine::getInstance()->playEffect(winOrLose ? "music/win.mp3" : "music/lose.mp3");
 	Sprite *sp;
 	if (winOrLose)
 		sp = Sprite::create("win.png");
@@ -471,9 +471,9 @@ void Maze::back(Ref *ref) {
 void Maze::addItem(const ItemType itemType, const std::pair<int, int> itemPosition) {
 	static const char* ItemFilenames[] = {
 		nullptr,
-		"arrow_up.png",
-		"arrow_down.png",
-		"torch.png"
+		"item/arrow_up.png",
+		"item/arrow_down.png",
+		"item/torch.png"
 	};
 	Sprite *itemSprite;
 	if (itemType == Tornado) {

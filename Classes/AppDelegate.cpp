@@ -48,9 +48,9 @@ bool AppDelegate::applicationDidFinishLaunching() {
     // create a scene. it's an autorelease object
 	auto scene = StartScene::createScene();
 
-	SimpleAudioEngine::getInstance()->preloadBackgroundMusic("bgm.mp3");
-	SimpleAudioEngine::getInstance()->preloadEffect("lose.mp3");
-	SimpleAudioEngine::getInstance()->preloadEffect("win.mp3");
+	SimpleAudioEngine::getInstance()->preloadBackgroundMusic("music/bgm.mp3");
+	SimpleAudioEngine::getInstance()->preloadEffect("music/lose.mp3");
+	SimpleAudioEngine::getInstance()->preloadEffect("music/win.mp3");
     // run
     director->runWithScene(scene);
 
