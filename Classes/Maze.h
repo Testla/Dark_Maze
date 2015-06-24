@@ -54,6 +54,10 @@ private:
 	void calculateRightPosition();
 	Layer *layerToSetRightPosition;
 	FiniteTimeAction *doSetRightPosition();
+
+	void debug();
+	void createInvisibleCloak();
+	void createTorch();
 };
 
 #endif // __MAZE_H__

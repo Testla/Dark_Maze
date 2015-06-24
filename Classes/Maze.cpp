@@ -167,12 +167,14 @@ void Maze::startMoving(int direction) {
 		}
 		comingDirection = direction;
 		layerToSetRightPosition = this;
+		//calculateRightPosition();
 		loopMove = layerToSetRightPosition->runAction(CallFunc::create(CC_CALLBACK_0(Maze::doMove, this)));
 	} else if (currentDirection != -1) {  // orthogonal
 		comingDirection = direction;
 	} else {  // not moving
 		comingDirection = direction;
 		layerToSetRightPosition = this;
+		//calculateRightPosition();
 		loopMove = layerToSetRightPosition->runAction(CallFunc::create(CC_CALLBACK_0(Maze::doMove, this)));
 	}
 }
@@ -200,6 +202,8 @@ void Maze::doMove() {
 		playerPosition = coordinate_add(playerPosition, directions[currentDirection]);
 		if (playerPosition == end)
 			;// win
+		if (playerPosition == monsterPosition)
+			log("lose1");
 		loopMove = layerToSetRightPosition->runAction(
 			Sequence::create(
 				doSetRightPosition(),
@@ -211,6 +215,9 @@ void Maze::doMove() {
 		if (loopMove) {
 			layerToSetRightPosition->stopAction(loopMove);
 			loopMove = nullptr;
+			player->stopAllActions();
+			comingDirection = -1;
+			chooseMoveAction();
 		}
 		currentDirection = -1;
 	}
@@ -307,8 +314,6 @@ void Maze::monsterDoMove() {
 	monsterChooseMoveAction();
 	
 	monsterPosition = coordinate_add(monsterPosition, directions[monsterComingDirection]);
-	if (monsterPosition == playerPosition)
-		;// touch the player
 	monster->runAction(
 		Sequence::create(
 		MoveTo::create(0.25f, monsterposition(monsterPosition)),
@@ -316,6 +321,8 @@ void Maze::monsterDoMove() {
 		NULL
 		)
 	);
+	if (monsterPosition == playerPosition)
+		log("lose");
 }
 
 void Maze::monsterChooseMoveAction() {
@@ -365,9 +372,8 @@ void Maze::calculateRightPosition() {
 FiniteTimeAction* Maze::doSetRightPosition() {
 	calculateRightPosition();
 	Vec2 currentPosition;
-	currentPosition = playerLayer->getPosition();
 	if (currentPosition != playerLayerRightPosition) {  // playerLayer
-		log("player");
+		//log("player");
 		layerToSetRightPosition = playerLayer;
 		return MoveTo::create(
 			(playerLayerRightPosition - currentPosition).length() / 50 / 4  // 4 grids per second
@@ -375,8 +381,8 @@ FiniteTimeAction* Maze::doSetRightPosition() {
 		);
 	} else {
 		// FIXME: Bug. when running back and forth, sometimes it should be player to move
-		// but the test passes, used this hack to force 
-		log("maze");
+		// but the test passes, used this hack to force some valid action to be returned
+		//log("maze");
 		currentPosition = mazeLayer->getPosition();
 		//if (currentPosition != mazeLayerRightPosition) {  //mazeLayer
 			layerToSetRightPosition = mazeLayer;
@@ -384,9 +390,27 @@ FiniteTimeAction* Maze::doSetRightPosition() {
 				(mazeLayerRightPosition - currentPosition).length() / 50 / 4  // 4 grids per second
 				, mazeLayerRightPosition
 			);
-		/*}
-		else {
+		/*} else {
 			log("no!");
 		}*/
 	}
+}
+
+// create InvisibleCloak
+void Maze::createInvisibleCloak() {
+	Sprite* invisibleCloak;
+	invisibleCloak = Sprite::create("invisiblecloak.png");
+	invisibleCloak->setAnchorPoint(Vec2::ZERO);
+	invisibleCloak->setPosition(gridSize.width * end.second, gridSize.height * end.first);
+	addChild(invisibleCloak);
+}
+
+
+//create Torch
+void Maze::createTorch() {
+	Sprite* torch;
+	torch = Sprite::create("torch.png");
+	torch->setAnchorPoint(Vec2::ZERO);
+	torch->setPosition(gridSize.width * end.second, gridSize.height * end.first);
+	addChild(torch);
 }
