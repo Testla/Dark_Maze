@@ -69,8 +69,8 @@ bool Maze::init() {
 	playerSpeed = 4;
 	torchCount = 0;
 
-	initUpdateEvent();
 	initMaze();
+	initUpdateEvent();
 	initKeyboardEvent();
     return true;
 }
@@ -81,11 +81,11 @@ Maze::~Maze() {
 
 void Maze::initUpdateEvent() {
 	dispatcher->addCustomEventListener("director_after_update", [=](EventCustom* event) {
-		static Vec2 endPoint = Vec2((end.second + 0.5) * gridSize.width, (end.first + 0.5) * gridSize.height);
+		Vec2 endPoint = Vec2((end.second + 0.5) * gridSize.width, (end.first + 0.5) * gridSize.height);
 		if ((playerLayer->convertToWorldSpace(player->getPosition())
 			- mazeLayer->convertToWorldSpace(monster->getPosition())).length() < 30.0f - 0.1f)
 			gameOver(false);
-		if (player->getBoundingBox().containsPoint(playerLayer->convertToNodeSpace(endPoint)))
+		if (player->getBoundingBox().containsPoint(playerLayer->convertToNodeSpace(mazeLayer->convertToWorldSpace(endPoint))))
 			gameOver(true);
 		if (itemSet.find({ (ItemType)0, playerPosition, nullptr }) != itemSet.end()) {
 			Item itemTriggered = *itemSet.find({ (ItemType)0, playerPosition, nullptr });
@@ -426,6 +426,7 @@ FiniteTimeAction* Maze::doSetRightPosition() {
 }
 
 void Maze::gameOver(bool winOrLose) {
+	//log(winOrLose ? "win" : "lose");
 	dispatcher->removeAllEventListeners();
 	this->stopAllActions();
 	monster->stopAllActions();
@@ -433,10 +434,26 @@ void Maze::gameOver(bool winOrLose) {
 	mazeLayer->stopAllActions();
 	playerLayer->stopAllActions();
 	cover->setVisible(false);
-	auto item = MenuItemLabel::create(Label::createWithSystemFont("·µ»Ø", "Microsoft Yahei", 50.0f), CC_CALLBACK_1(Maze::back, this));
-	auto menu = Menu::create(item, NULL);
-	menu->setPosition(winSize / 2);
-	addChild(menu, 2);
+	Sprite *sp;
+	if (winOrLose)
+		sp = Sprite::create("win.png");
+	else
+		sp = Sprite::create("GameOver.png");
+	sp->setPosition(winSize / 2);
+	addChild(sp, 2);
+	sp->runAction(
+		Sequence::create(
+		ScaleTo::create(1.0f, 1.5f),
+		FadeOut::create(1.0f),
+		CallFunc::create([=]() {
+			auto item = MenuItemLabel::create(Label::createWithSystemFont("·µ»Ø", "Microsoft Yahei", 60.0f), CC_CALLBACK_1(Maze::back, this));
+			item->setColor(Color3B::YELLOW);
+			auto menu = Menu::create(item, NULL);
+			menu->setPosition(winSize / 2);
+			addChild(menu, 2);
+		}),
+		NULL)
+		);
 }
 
 void Maze::back(Ref *ref) {
@@ -517,12 +534,13 @@ void Maze::tornadoCallback() {
 	);
 	if (loopMove)
 		layerToSetRightPosition->stopAction(loopMove);
-	player->stopAction(walkingAnimation);
+	//player->stopAction(walkingAnimation);
 	playerPosition = randomPosition;
 	calculateRightPosition();
 	mazeLayer->setPosition(mazeLayerRightPosition);
 	playerLayer->setPosition(playerLayerRightPosition);
-	loopMove = layerToSetRightPosition->runAction(CallFunc::create(CC_CALLBACK_0(Maze::doMove, this)));
+	if (currentDirection != -1)
+		loopMove = layerToSetRightPosition->runAction(CallFunc::create(CC_CALLBACK_0(Maze::doMove, this)));
 }
 
 void Maze::speedUpCallback() {
