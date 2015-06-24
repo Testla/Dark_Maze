@@ -1,4 +1,5 @@
 #include "Maze.h"
+#include "SelectLevelScene.h"
 #pragma execution_character_set("utf-8") 
 USING_NS_CC;
 
@@ -15,6 +16,7 @@ using std::pair;
  */
 const pair<int, int> Maze::screenSize = { 13, 17 };
 const Size Maze::gridSize = Size(50.0f, 50.0f);
+std::pair<int, int> Maze::mazeSize;
 
 void Maze_generate(
 	Matrix<char> &matrix,
@@ -46,7 +48,7 @@ bool Maze::init() {
     {
         return false;
     }
-	
+	log("initializing maze");
 	dispatcher = Director::getInstance()->getEventDispatcher();
 	winSize = Director::getInstance()->getWinSize();
 	directions[0] = { 0, -1 };
@@ -55,15 +57,17 @@ bool Maze::init() {
 	directions[3] = { -1, 0 };
 	currentDirection = -1;
 	loopMove = nullptr;
-	mazeSize = { 23, 27 };
-	maze = new Matrix<char>(mazeSize);
+	maze = new Matrix<char>(std::make_pair(1, 1));
 	mazeLayer = Layer::create();
 	addChild(mazeLayer);
 	playerLayer = Layer::create();
 	addChild(playerLayer);
 	layerToSetRightPosition = mazeLayer;
+	for (int i = 0; i < 4; ++i)
+		keyIsHolding[i] = false;
+	holdingCount = 0;
 
-	initMaze(mazeSize);
+	initMaze();
 	initKeyboardEvent();
     return true;
 }
@@ -72,12 +76,12 @@ Maze::~Maze() {
 	delete maze;
 }
 
-void Maze::initMaze(pair<int, int> Maze_Size) {
-	maze->resize(Maze_Size);
+void Maze::initMaze() {
+	maze->resize(mazeSize);
 	Sprite *newSprite;
 	Maze_generate(*maze, playerPosition, end);
-	for (int i = 0; i < Maze_Size.first; ++i)
-		for (int j = 0; j < Maze_Size.second; ++j) {
+	for (int i = 0; i < mazeSize.first; ++i)
+		for (int j = 0; j < mazeSize.second; ++j) {
 			switch ((*maze)[i][j]) {
 				case '#' : newSprite = Sprite::create("wall.png"); break;
 				default : newSprite = Sprite::create("floor.jpg"); break;
@@ -95,9 +99,9 @@ void Maze::initMaze(pair<int, int> Maze_Size) {
 	//add monster
 	createMonster();
 
-	// add view
-	newSprite = Sprite::create("normal view.png");
-	//playerLayer->addChild(newSprite);
+	// add cover
+	cover = Sprite::create("normal view.png");
+	playerLayer->addChild(cover);
 
 	// add player
 	player = Sprite::create("player1_2.png");
@@ -107,7 +111,6 @@ void Maze::initMaze(pair<int, int> Maze_Size) {
 	calculateRightPosition();
 	mazeLayer->setPosition(mazeLayerRightPosition);
 	playerLayer->setPosition(playerLayerRightPosition);
-	//playerLayer->setPosition(Vec2::ZERO);
 }
 
 /*
@@ -115,8 +118,6 @@ void Maze::initMaze(pair<int, int> Maze_Size) {
  */
 void Maze::initKeyboardEvent() {
 	auto listener = EventListenerKeyboard::create();
-	static bool keyIsHolding[4] = { false };
-	static int holdingCount = 0;
 
 	listener->onKeyPressed = [&](EventKeyboard::KeyCode code, Event* event) {
 		int key = (int)code - (int)EventKeyboard::KeyCode::KEY_LEFT_ARROW;
@@ -201,9 +202,9 @@ void Maze::doMove() {
 	if (maze->at(coordinate_add(playerPosition, directions[currentDirection])) != '#') {
 		playerPosition = coordinate_add(playerPosition, directions[currentDirection]);
 		if (playerPosition == end)
-			;// win
+			gameOver(true);
 		if (playerPosition == monsterPosition)
-			log("lose1");
+			gameOver(false);
 		loopMove = layerToSetRightPosition->runAction(
 			Sequence::create(
 				doSetRightPosition(),
@@ -322,7 +323,7 @@ void Maze::monsterDoMove() {
 		)
 	);
 	if (monsterPosition == playerPosition)
-		log("lose");
+		gameOver(false);
 }
 
 void Maze::monsterChooseMoveAction() {
@@ -372,6 +373,7 @@ void Maze::calculateRightPosition() {
 FiniteTimeAction* Maze::doSetRightPosition() {
 	calculateRightPosition();
 	Vec2 currentPosition;
+	currentPosition = playerLayer->getPosition();
 	if (currentPosition != playerLayerRightPosition) {  // playerLayer
 		//log("player");
 		layerToSetRightPosition = playerLayer;
@@ -405,7 +407,6 @@ void Maze::createInvisibleCloak() {
 	addChild(invisibleCloak);
 }
 
-
 //create Torch
 void Maze::createTorch() {
 	Sprite* torch;
@@ -413,4 +414,24 @@ void Maze::createTorch() {
 	torch->setAnchorPoint(Vec2::ZERO);
 	torch->setPosition(gridSize.width * end.second, gridSize.height * end.first);
 	addChild(torch);
+}
+
+void Maze::gameOver(bool winOrLose) {
+	dispatcher->removeAllEventListeners();
+	this->stopAllActions();
+	monster->stopAllActions();
+	player->stopAllActions();
+	mazeLayer->stopAllActions();
+	playerLayer->stopAllActions();
+	cover->setVisible(false);
+	auto item = MenuItemLabel::create(Label::createWithSystemFont("·µ»Ø", "Microsoft Yahei", 50.0f), CC_CALLBACK_1(Maze::back, this));
+	auto menu = Menu::create(item, NULL);
+	menu->setPosition(winSize / 2);
+	addChild(menu, 2);
+}
+
+void Maze::back(Ref *ref) {
+	//this->removeAllChildren();
+	auto scene = SelectLevel::createScene();
+	Director::getInstance()->replaceScene(scene);
 }

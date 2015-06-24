@@ -16,6 +16,7 @@ public:
 private:
 	Size winSize;
 	EventDispatcher *dispatcher;
+	void start(Ref* ref, const int difficulty);
 };
 
 #endif // __SELECT_LEVEL_H__

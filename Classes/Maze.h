@@ -16,20 +16,23 @@ public:
 
 	~Maze();
 	static const std::pair<int, int> screenSize;
+	static std::pair<int, int> mazeSize;
 	static const Size gridSize;
 private:
-	std::pair<int, int> mazeSize;
 	Layer *mazeLayer, *playerLayer;
 	Size winSize;
 	EventDispatcher *dispatcher;
 	std::pair<int, int> end, playerPosition, monsterPosition;
 	Action *loopMove, *walkingAnimation;
 	Matrix<char> *maze;
-	Sprite *player;
+	Sprite *player, *cover;
 	Sprite *monster;
 
+	bool keyIsHolding[4];
+	int holdingCount;
+
 	void initKeyboardEvent();
-	void initMaze(std::pair<int, int> Maze_Size);
+	void initMaze();
 	
 	std::pair<int, int> directions[4];
 	/* 
@@ -55,9 +58,11 @@ private:
 	Layer *layerToSetRightPosition;
 	FiniteTimeAction *doSetRightPosition();
 
-	void debug();
 	void createInvisibleCloak();
 	void createTorch();
+
+	void gameOver(bool winOrLose);
+	void back(Ref *ref);
 };
 
 #endif // __MAZE_H__
