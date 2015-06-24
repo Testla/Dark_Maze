@@ -26,10 +26,10 @@ struct Prim_State {
 };
 
 /* if the positions are identical, they are equal,
-* else, they are compared by the random weight */
+ * else, they are compared by the random weight */
 struct Prim_State_compare {
 	bool operator()(const Prim_State &a, const Prim_State &b) {
-		return (a.wall != b.wall && a.weight <= b.weight);
+		return (a.wall != b.wall && a.weight < b.weight);
 	}
 };
 
@@ -62,9 +62,6 @@ void Maze_generate(
 	pair<int, int> destiny, corresponding_floor;
 	visited.assign(false);
 	srand(time(NULL));
-	char buf[40];
-	sprintf(buf, "--------time : %d", time(NULL));
-	log(buf);
 	matrix.assign(WALL);
 	start.first = (rand() % (matrix.size().first - 1) / 2) * 2 + 1;
 	start.second = (rand() % (matrix.size().second - 1) / 2) * 2 + 1;
