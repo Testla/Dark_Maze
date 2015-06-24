@@ -372,6 +372,7 @@ void Maze::calculateRightPosition() {
 FiniteTimeAction* Maze::doSetRightPosition() {
 	calculateRightPosition();
 	Vec2 currentPosition;
+	currentPosition = playerLayer->getPosition();
 	if (currentPosition != playerLayerRightPosition) {  // playerLayer
 		//log("player");
 		layerToSetRightPosition = playerLayer;
@@ -402,7 +403,7 @@ void Maze::createInvisibleCloak() {
 	invisibleCloak = Sprite::create("invisiblecloak.png");
 	invisibleCloak->setAnchorPoint(Vec2::ZERO);
 	invisibleCloak->setPosition(gridSize.width * end.second, gridSize.height * end.first);
-	addChild(invisibleCloak);
+	mazeLayer->addChild(invisibleCloak);
 }
 
 
@@ -412,5 +413,24 @@ void Maze::createTorch() {
 	torch = Sprite::create("torch.png");
 	torch->setAnchorPoint(Vec2::ZERO);
 	torch->setPosition(gridSize.width * end.second, gridSize.height * end.first);
-	addChild(torch);
+	mazeLayer->addChild(torch);
+}
+
+
+//create SpeedUp
+void Maze::createSpeedUp() {
+	Sprite* speedup;
+	speedup = Sprite::create("arrow_up.png");
+	speedup->setAnchorPoint(Vec2::ZERO);
+	speedup->setPosition(gridSize.width * end.second, gridSize.height * end.first);
+	mazeLayer->addChild(speedup);
+}
+
+//create SpeedDown
+void Maze::createSpeedDown() {
+	Sprite* speeddown;
+	speeddown = Sprite::create("arrow_down.png");
+	speeddown->setAnchorPoint(Vec2::ZERO);
+	speeddown->setPosition(gridSize.width * end.second, gridSize.height * end.first);
+	mazeLayer->addChild(speeddown);
 }

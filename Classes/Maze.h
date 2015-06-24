@@ -58,6 +58,8 @@ private:
 	void debug();
 	void createInvisibleCloak();
 	void createTorch();
+	void createSpeedUp();
+	void createSpeedDown();
 };
 
 #endif // __MAZE_H__
